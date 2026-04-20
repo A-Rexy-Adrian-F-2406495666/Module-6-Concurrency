@@ -1,6 +1,6 @@
 # Reflection
 
-## Commit 1: Reflection notes
+## Commit 1: Reflection Notes
 
 Pada tahap ini, saya mempelajari bagaimana server single-threaded di Rust menerima dan memproses request dari browser menggunakan `TcpListener` dan `TcpStream`.
 
@@ -20,3 +20,7 @@ Dari percobaan ini, saya memahami beberapa hal:
 - Rust menyediakan tools seperti BufReader untuk mempermudah pembacaan data dari stream.
 
 Selain itu, saya juga mempelajari bagaimana browser dapat mengirim beberapa request secara otomatis (retry), sehingga server bisa mencetak beberapa output “Request” meskipun hanya satu kali akses dilakukan.
+
+## Commit 2: Screen Capture
+
+![Commit 2 screen capture](/assets/images/commit2.png)
