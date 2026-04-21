@@ -70,3 +70,25 @@ Sebelumnya, setiap request diproses secara berurutan sehingga satu request yang 
 
     Saat `ThreadPool` dihentikan (di-drop), channel akan otomatis ditutup karena `sender` sudah tidak ada. Worker yang sedang menunggu job di `recv()` akan menerima error, lalu keluar dari loop dengan sendirinya. Dengan cara ini, semua thread bisa berhenti dengan rapi tanpa ada yang "tersangkut" di belakang layar.
 
+## Commit Bonus Reflection Notes
+
+Pada tahap ini, saya mencoba mengganti fungsi `new` dengan `build` agar proses pembuatan `ThreadPool` menjadi lebih aman. Sebelumnya, kesalahan seperti ukuran thread 0 langsung menyebabkan panic, sekarang error tersebut dikembalikan dalam bentuk `Result` sehingga bisa ditangani dengan lebih baik.
+
+Perbedaan utama antara new dan build ada di cara mereka menangani kondisi error, terutama saat input tidak valid.
+
+- Return type
+
+    `new` langsung mengembalikan `ThreadPool`, sedangkan `build` mengembalikan `Result<ThreadPool, PoolCreationError>`. Artinya, build mengakui sejak awal bahwa proses pembuatan `ThreadPool` bisa gagal, jadi hasilnya dibungkus dalam `Result`.
+- Saat input tidak valid
+
+    Pada `new`, jika input seperti ukuran thread = 0, program akan langsung `panic!` atau berhenti. Sementara pada build, kondisi ini tidak langsung menghentikan program, tetapi mengembalikan `Err(...) `yang bisa ditangani.
+- Siapa yang menangani error
+
+    Pada `new`, error ditangani oleh runtime (program langsung crash). Sedangkan pada `build`, error diserahkan ke pemanggil (caller), jadi kita bisa memutuskan sendiri mau diapakan error tersebut.
+
+### Kenapa `new` menggunakan `assert!` dianggap kurang ideal
+Konvensi Rust menyatakan bahwa `new` seharusnya tidak gagal jika dipanggil, diasumsikan inputnya valid. Dengan `assert!(size > 0)`, program langsung panik saat runtime tanpa memberi kesempatan kepada caller untuk bereaksi.  Hal ini cocok untuk program yang inputnya dijamin valid, tetapi kurang tepat untuk validasi input dari luar.
+
+### Kenapa `build` lebih ekspresif
+
+`build` mengembalikan `Result`, yang berarti kemungkinan gagalnya dikodekan di dalam type system itu sendiri. Compiler memaksa caller untuk menangani kedua kemungkinan. Hal ini sesuai dengan filosofi Rust: _make impossible states unrepresentable dan errors are values_. Caller bisa memilih `unwrap()`, `unwrap_or_else`, `?`, atau pattern matching sesuai kebutuhannya.
