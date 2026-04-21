@@ -44,3 +44,7 @@ let (status_line, filename) = if request_line == "GET / HTTP/1.1" {
 Refactoring ini membuat alur kode terasa lebih masuk akal karena ada pemisahan antara membaca request dan menentukan response. Hasilnya, server jadi terlihat lebih “nyata” karena bisa memiliki respons yang berbeda tergantung permintaan dari browser. Hal ini sesuai dengan bagaimana HTTP mendefinisikan status code berbeda untuk situasi yang berbeda.
 
 ![Commit 3 screen capture](/assets/images/commit3.png)
+
+## Commit 4 Reflection Notes
+
+Pada tahap ini, saya mencoba mensimulasikan kondisi ketika server memproses request yang lambat dengan menambahkan sleep selama 10 detik pada endpoint `/sleep`. Saya melakukan pengujian dengan membuka endpoint `/sleep` terlebih dahulu, kemudian membuka root request endpoint `/`. Saat keduanya diuji, terlihat bahwa request root endpoint ikut tertunda karena harus menunggu endpoint `/sleep` selesai. Hal ini terjadi karena server masih berjalan secara single-threaded, sehingga hanya bisa memproses satu request dalam satu waktu. Akibatnya, request berikutnya harus menunggu sampai proses sebelumnya selesai. Dari sini saya memahami bahwa pendekatan ini tidak efisien untuk menangani banyak user sekaligus. Simulasi ini menunjukkan pentingnya concurrency atau multi-threading agar server bisa menangani banyak request secara bersamaan.
