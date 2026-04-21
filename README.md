@@ -1,6 +1,6 @@
 # Reflection
 
-## Commit 1: Reflection Notes
+## Commit 1 Reflection Notes
 
 Pada tahap ini, saya mempelajari bagaimana server single-threaded di Rust menerima dan memproses request dari browser menggunakan `TcpListener` dan `TcpStream`.
 
@@ -21,6 +21,26 @@ Dari percobaan ini, saya memahami beberapa hal:
 
 Selain itu, saya juga mempelajari bagaimana browser dapat mengirim beberapa request secara otomatis (retry), sehingga server bisa mencetak beberapa output “Request” meskipun hanya satu kali akses dilakukan.
 
-## Commit 2: Screen Capture
+## Commit 2 Reflection Notes
 
 ![Commit 2 screen capture](/assets/images/commit2.png)
+
+Pada tahap ini, saya mempelajari bagaimana server Rust mengirimkan response HTTP berupa halaman HTML ke browser. Sekarang, fungsi `handle_connection` tidak hanya membaca request, tetapi juga mengirim response dengan status line "HTTP/1.1 200 OK" dan header seperti Content-Length. File `hello.html` dibaca menggunakan `fs::read_to_string`, lalu isinya dimasukkan ke dalam response yang dikirim ke client. Saya juga memahami bahwa format response HTTP harus sesuai standar, termasuk pemisahan header dan body menggunakan \r\n\r\n. Hasilnya, browser akhirnya dapat menampilkan halaman HTML sederhana yang dikirim oleh server Rust.
+
+## Commit 3 Reflection Notes
+
+Sebelumnya, fungsi `handle_connection` membaca seluruh HTTP request headers ke dalam sebuah Vec, tetapi tidak pernah benar-benar memeriksa isinya. Akibatnya, server selalu merespons dengan `hello.html` dan status 200 OK untuk setiap request. Ini perilaku yang salah secara semantik karena HTTP mendefinisikan status code berbeda untuk situasi berbeda (200 untuk sukses, 404 untuk tidak ditemukan, dan lain sebagainya).
+
+### Refactoring yang dilakukan
+- Pertama, saya mengubah cara membaca request, alih-alih mengumpulkan semua header ke Vec, saya hanya perlu ambil baris pertama saja (request_line) karena baris itulah yang memuat method dan path (GET / HTTP/1.1).
+- Kedua, saya menambahkan if-else untuk memeriksa nilai `request_line`:
+```rust
+let (status_line, filename) = if request_line == "GET / HTTP/1.1" {
+    ("HTTP/1.1 200 OK", "hello.html")
+} else {
+    ("HTTP/1.1 404 NOT FOUND", "404.html")
+};
+```
+Refactoring ini membuat alur kode terasa lebih masuk akal karena ada pemisahan antara membaca request dan menentukan response. Hasilnya, server jadi terlihat lebih “nyata” karena bisa memiliki respons yang berbeda tergantung permintaan dari browser. Hal ini sesuai dengan bagaimana HTTP mendefinisikan status code berbeda untuk situasi yang berbeda.
+
+![Commit 3 screen capture](/assets/images/commit3.png)
