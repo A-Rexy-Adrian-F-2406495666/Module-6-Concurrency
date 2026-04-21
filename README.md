@@ -48,3 +48,25 @@ Refactoring ini membuat alur kode terasa lebih masuk akal karena ada pemisahan a
 ## Commit 4 Reflection Notes
 
 Pada tahap ini, saya mencoba mensimulasikan kondisi ketika server memproses request yang lambat dengan menambahkan sleep selama 10 detik pada endpoint `/sleep`. Saya melakukan pengujian dengan membuka endpoint `/sleep` terlebih dahulu, kemudian membuka root request endpoint `/`. Saat keduanya diuji, terlihat bahwa request root endpoint ikut tertunda karena harus menunggu endpoint `/sleep` selesai. Hal ini terjadi karena server masih berjalan secara single-threaded, sehingga hanya bisa memproses satu request dalam satu waktu. Akibatnya, request berikutnya harus menunggu sampai proses sebelumnya selesai. Dari sini saya memahami bahwa pendekatan ini tidak efisien untuk menangani banyak user sekaligus. Simulasi ini menunjukkan pentingnya concurrency atau multi-threading agar server bisa menangani banyak request secara bersamaan.
+
+## Commit 5 Reflection Notes
+
+
+Sebelumnya, setiap request diproses secara berurutan sehingga satu request yang lambat bisa menghambat request lainnya. Pada tahap ini, saya mengubah server dari single-threaded menjadi multithreaded menggunakan ThreadPool. ThreadPool adalah kumpulan thread yang sudah dibuat di awal (pre-spawned) dan siap menerima pekerjaan. Alih-alih menggunakan `thread::spawn` per request, kita bisa membuat sejumlah thread tetap (misal 4) selama program berjalan.
+
+### Komponen utama pada ThreadPool:
+
+1. Channel sebagai antrian job
+    ```rust
+    let (sender, receiver) = mpsc::channel();
+    ```
+    Channel ini dipakai sebagai “jalur komunikasi” antara thread utama dan worker. Thread utama berperan sebagai pengirim job (producer), sementara worker akan mengambil dan menjalankan job tersebut (consumer). Jadi, alurnya mirip antrean: job dikirim, lalu worker ambil satu per satu untuk diproses.
+
+2. `Arc<Mutex<Receiver>>` untuk berbagi receiver
+
+    Karena receiver tidak bisa di-clone begitu saja, kita perlu membungkusnya dengan `Arc` supaya bisa dimiliki bersama oleh banyak thread. Lalu ditambah `Mutex` agar aksesnya tetap aman. Hal ini karena hanya satu worker yang bisa mengambil job pada satu waktu. Ini penting untuk menghindari race condition atau bentrok antar thread.
+
+3. Graceful shutdown via `Drop`
+
+    Saat `ThreadPool` dihentikan (di-drop), channel akan otomatis ditutup karena `sender` sudah tidak ada. Worker yang sedang menunggu job di `recv()` akan menerima error, lalu keluar dari loop dengan sendirinya. Dengan cara ini, semua thread bisa berhenti dengan rapi tanpa ada yang "tersangkut" di belakang layar.
+
